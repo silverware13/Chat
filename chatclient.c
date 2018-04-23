@@ -24,7 +24,7 @@
 //function prototype(s)
 bool check_args(int argc, char *argv[]);
 void get_handle(char *handle);
-void setup_connection();
+bool setup_connection(char *argv[], char buffer[], int port_num);
 void chat();
 
 int main(int argc, char *argv[])
@@ -36,15 +36,18 @@ int main(int argc, char *argv[])
 
 	//set variables	
 	int port_num = strtol(argv[2], NULL, 10);
-	char *handle = handle;
-	handle = (char *)malloc(MAX_CHARS_HANDLE * sizeof(char));
+	char handle[MAX_CHARS_HANDLE + 1];
+	char buffer[MAX_CHARS_MESSAGE + 1];
 
 	//get a handle for the user
 	get_handle(handle);
 	printf("This is your handle: %s\n", handle);	
 
 	//setup the connection with the server
-	setup_connection();
+	if(!setup_connection(argv, buffer, port_num)){
+		fprintf(stderr, "Connection failed.\n");
+		return 1;
+	} 
 
 	//start chatting with the host
 	chat();
@@ -75,12 +78,41 @@ void get_handle(char *handle)
 	scanf("%10s", handle, 10);
 }
 
-void setup_connection()
+bool setup_connection(char *argv[], char buffer[], int port_num)
 {
-		
+	//setup variables
+	int socketFD, portNumber, charsWritten, charsRead, i, ii;
+	struct sockaddr_in serverAddress;
+	struct hostent* serverHostInfo;
+	
+	//set up the server address struct
+	memset((char*)&serverAddress, '\0', sizeof(serverAddress)); // Clear out the address struct
+	serverAddress.sin_family = AF_INET; // Create a network-capable socket
+	serverAddress.sin_port = htons(portNumber); // Store the port number
+	serverHostInfo = gethostbyname(argv[2]); // Convert the machine name into a special form of address
+	if (serverHostInfo == NULL){
+		return false;
+	} 
+	memcpy((char*)&serverAddress.sin_addr.s_addr, (char*)serverHostInfo->h_addr, serverHostInfo->h_length); // Copy in the address
+	
+	//set up socket
+	socketFD = socket(AF_INET, SOCK_STREAM, 0); // Create the socket
+	if (socketFD < 0){
+		return false;
+	}
+
+	//connect to server
+	if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0){ // Connect socket to address
+		return false;
+	}
+
+	return true;
 }
 
 void chat()
 {
-
+	printf("Starting chat.\n");
+	while(true){
+		sleep(1);
+	}
 }
