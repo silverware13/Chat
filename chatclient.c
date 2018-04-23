@@ -22,6 +22,8 @@
 
 //function prototype(s)
 void get_handle();
+void setup_connection();
+void chat();
 
 int main(int argc, char *argv[])
 {
@@ -37,10 +39,39 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 	
-	int port_num = strtol(argv[2], NULL, 10);	
+	int port_num = strtol(argv[2], NULL, 10);
+
+	char *handle = handle;
+	handle = (char *)malloc(MAX_CHARS_HANDLE * sizeof(char));
+
+	//get a handle for the user
+	get_handle(handle);
+	printf("This is your handle: %s\n", handle);	
+
+	//setup the connection to server
+	setup_connection();
+
+	//start chatting with the host
+	chat();
+	
+	return 0;
 }
 
-void get_handle()
+void get_handle(char *handle)
+{
+	while(true){
+		printf("Please enter a handle, it must be no longer than %d characters.\nHandle: ", MAX_CHARS_HANDLE);
+		scanf("%s", handle, 10);
+		return;	
+	}
+}
+
+void setup_connection()
+{
+
+}
+
+void chat()
 {
 
 }
