@@ -24,8 +24,8 @@
 //function prototype(s)
 bool check_args(int argc, char *argv[]);
 void get_handle(char *handle);
-bool setup_connection(char *argv[], char buffer[], int port_num);
-void chat();
+bool setup_connection(char *argv[], char *handle, int port_num);
+void chat(int socketFD, char *handle);
 
 int main(int argc, char *argv[])
 {
@@ -36,23 +36,17 @@ int main(int argc, char *argv[])
 
 	//set variables	
 	int port_num = strtol(argv[2], NULL, 10);
-	char handle[MAX_CHARS_HANDLE + 1];
-	char buffer[MAX_CHARS_MESSAGE + 1];
-	memset(handle, 0, MAX_CHARS_HANDLE + 1);
-	memset(buffer, 0, MAX_CHARS_MESSAGE + 1);
+	char *handle;
+	handle = (char *)calloc(MAX_CHARS_HANDLE + 1, sizeof(char));
 
 	//get a handle for the user
 	get_handle(handle);
-	printf("This is your handle: %s\n", handle);	
 
 	//setup the connection with the server
-	if(!setup_connection(argv, buffer, port_num)){
+	if(!setup_connection(argv, handle, port_num)){
 		fprintf(stderr, "Connection failed.\n");
 		return 1;
-	} 
-
-	//start chatting with the host
-	chat();
+	}
 	
 	return 0;
 }
@@ -78,22 +72,21 @@ void get_handle(char *handle)
 {
 	printf("Please enter a handle, it must be no longer than %d characters.\nHandle: ", MAX_CHARS_HANDLE);
 	scanf("%10s", handle, 10);
+	printf("Your handle is: %s\n", handle);	
 }
 
-bool setup_connection(char *argv[], char buffer[], int port_num)
+bool setup_connection(char *argv[], char *handle, int port_num)
 {
 	//setup variables
-	int socketFD, portNumber, charsWritten, charsRead, i, ii;
+	int socketFD;
 	struct sockaddr_in serverAddress;
 	struct hostent* serverHostInfo;
 	
 	//set up the server address struct
 	memset((char*)&serverAddress, '\0', sizeof(serverAddress)); //clear out the address struct
 	serverAddress.sin_family = AF_INET; //create a network-capable socket
-	//serverAddress.sin_port = htons(portNumber); //store the port number
-	//serverHostInfo = gethostbyname(argv[2]); //convert the machine name into a special form of address
-	serverAddress.sin_port = htons(12556); //store the port number
-	serverHostInfo = gethostbyname("localhost"); //convert the machine name into a special form of address
+	serverAddress.sin_port = htons(port_num); //store the port number
+	serverHostInfo = gethostbyname(argv[1]); //convert the machine name into a special form of address
 	if (serverHostInfo == NULL){
 		return false;
 	} 
@@ -107,20 +100,29 @@ bool setup_connection(char *argv[], char buffer[], int port_num)
 
 	//connect to server
 	if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0){ //connect socket to address
-		//return false;
+		return false;
 	}
 
-	send(socketFD, "hey dude", strlen("hey dude"), 0); //write to the server
-	charsRead = recv(socketFD, &buffer[0], 100, 0); //read the client's message from the socket
-	printf("%s\n", buffer); 
-
+	//start chatting with the host
+	chat(socketFD, handle);
+	
 	return true;
 }
 
-void chat()
+void chat(int socketFD, char *handle)
 {
+	char buffer[MAX_CHARS_MESSAGE + MAX_CHARS_HANDLE + 2];
+	char message[MAX_CHARS_MESSAGE + 1];
+	memset(buffer, '\0', MAX_CHARS_MESSAGE + MAX_CHARS_HANDLE + 2);
+	memset(message, '\0', MAX_CHARS_MESSAGE + 1);
 	printf("Starting chat.\n");
+	snprintf(message, sizeof(message), "hello everyone");
+	snprintf(buffer, sizeof(buffer), "%s> %s", handle, message);
+	printf("This is the message sent: %s\n", buffer);
 	while(true){
+		send(socketFD, buffer, strlen(buffer), 0); //write to the server
+		recv(socketFD, &buffer[0], 100, 0); //read the client's message from the socket
+		printf("%s\n", buffer); 
 		sleep(1);
 	}
 }
