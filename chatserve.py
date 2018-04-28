@@ -12,9 +12,10 @@
 # Lecture 15: Socket Programming Primer (slide 6) 
 
 from socket import *
-serverPort = 12000
+serverPort = 12123
 serverSocket = socket(AF_INET, SOCK_DGRAM)
-serverSocket.bind(('', serverPort))print “The server is ready to receive”
+serverSocket.bind(('', serverPort))
+print "The server is ready to receive"
 while 1:
 	message, clientAddress = serverSocket.recvfrom(2048)
 	modifiedMessage = message.upper()
