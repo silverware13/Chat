@@ -111,18 +111,39 @@ bool setup_connection(char *argv[], char *handle, int port_num)
 
 void chat(int socketFD, char *handle)
 {
+	int chars_written, chars_read;
 	char buffer[MAX_CHARS_MESSAGE + MAX_CHARS_HANDLE + 2];
 	char message[MAX_CHARS_MESSAGE + 1];
 	memset(buffer, '\0', MAX_CHARS_MESSAGE + MAX_CHARS_HANDLE + 2);
 	memset(message, '\0', MAX_CHARS_MESSAGE + 1);
 	printf("Starting chat.\n");
-	snprintf(message, sizeof(message), "hello everyone");
-	snprintf(buffer, sizeof(buffer), "%s> %s", handle, message);
-	printf("This is the message sent: %s\n", buffer);
 	while(true){
-		send(socketFD, buffer, strlen(buffer), 0); //write to the server
-		recv(socketFD, &buffer[0], 100, 0); //read the client's message from the socket
+		printf("%s> ", handle);
+		scanf("%s", message, 10);
+		snprintf(buffer, sizeof(buffer), "%s> %s", handle, message);
+
+		send(socketFD, buffer, strlen(buffer), 0); //write to socket
+		//send message to server
+		chars_written = 0;
+		do{
+			chars_written += send(socketFD, buffer, strlen(buffer), 0); //write to socket
+			if(chars_written < 0){
+				fprintf(stderr, "Error writing to socket.\n");
+				exit(2); 
+			}
+		} while(chars_written < strlen(buffer));
+		printf("FINISHED SENDING\n");
+		//read message from server
+		chars_read = 0;
+	//	do{
+			chars_read += recv(socketFD, &buffer[chars_read], 100, 0); //read from socket
+			if(chars_read < 0){
+				fprintf(stderr, "Error reading from socket.\n");
+				exit(2); 
+			}
+	//	} while(buffer[strlen(buffer)] - 1 != '\0');
+		
+		//show message from server
 		printf("%s\n", buffer); 
-		sleep(1);
 	}
 }

@@ -20,7 +20,9 @@ print "The server is ready to receive."
 while 1:
 	connectionSocket, addr = serverSocket.accept()
 
-	sentence = connectionSocket.recv(1024)
-	capitalizedSentence = sentence.upper()
-	connectionSocket.send(capitalizedSentence)
-	connectionSocket.close()
+	while 1:
+		clientMessage = connectionSocket.recv(1024)
+		print clientMessage
+		serverMessage = "server> This is a message"	
+		connectionSocket.send(serverMessage)
+		#connectionSocket.close()
