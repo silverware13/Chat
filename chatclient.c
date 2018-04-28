@@ -38,6 +38,8 @@ int main(int argc, char *argv[])
 	int port_num = strtol(argv[2], NULL, 10);
 	char handle[MAX_CHARS_HANDLE + 1];
 	char buffer[MAX_CHARS_MESSAGE + 1];
+	memset(handle, 0, MAX_CHARS_HANDLE + 1);
+	memset(buffer, 0, MAX_CHARS_MESSAGE + 1);
 
 	//get a handle for the user
 	get_handle(handle);
@@ -86,25 +88,31 @@ bool setup_connection(char *argv[], char buffer[], int port_num)
 	struct hostent* serverHostInfo;
 	
 	//set up the server address struct
-	memset((char*)&serverAddress, '\0', sizeof(serverAddress)); // Clear out the address struct
-	serverAddress.sin_family = AF_INET; // Create a network-capable socket
-	serverAddress.sin_port = htons(portNumber); // Store the port number
-	serverHostInfo = gethostbyname(argv[2]); // Convert the machine name into a special form of address
+	memset((char*)&serverAddress, '\0', sizeof(serverAddress)); //clear out the address struct
+	serverAddress.sin_family = AF_INET; //create a network-capable socket
+	//serverAddress.sin_port = htons(portNumber); //store the port number
+	//serverHostInfo = gethostbyname(argv[2]); //convert the machine name into a special form of address
+	serverAddress.sin_port = htons(12556); //store the port number
+	serverHostInfo = gethostbyname("localhost"); //convert the machine name into a special form of address
 	if (serverHostInfo == NULL){
 		return false;
 	} 
-	memcpy((char*)&serverAddress.sin_addr.s_addr, (char*)serverHostInfo->h_addr, serverHostInfo->h_length); // Copy in the address
+	memcpy((char*)&serverAddress.sin_addr.s_addr, (char*)serverHostInfo->h_addr, serverHostInfo->h_length); //copy in the address
 	
 	//set up socket
-	socketFD = socket(AF_INET, SOCK_STREAM, 0); // Create the socket
+	socketFD = socket(AF_INET, SOCK_STREAM, 0); //create the socket
 	if (socketFD < 0){
 		return false;
 	}
 
 	//connect to server
-	if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0){ // Connect socket to address
-		return false;
+	if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0){ //connect socket to address
+		//return false;
 	}
+
+	send(socketFD, "hey dude", strlen("hey dude"), 0); //write to the server
+	charsRead = recv(socketFD, &buffer[0], 100, 0); //read the client's message from the socket
+	printf("%s\n", buffer); 
 
 	return true;
 }

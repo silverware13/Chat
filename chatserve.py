@@ -9,14 +9,18 @@
 # messages up to 500 characters long.
 # ------------------------------------
 # Cited references:
-# Lecture 15: Socket Programming Primer (slide 6) 
+# Lecture 15: Socket Programming Primer 
 
 from socket import *
-serverPort = 12123
-serverSocket = socket(AF_INET, SOCK_DGRAM)
+serverPort = 12556
+serverSocket = socket(AF_INET, SOCK_STREAM)
 serverSocket.bind(('', serverPort))
-print "The server is ready to receive"
+serverSocket.listen(1)
+print "The server is ready to receive."
 while 1:
-	message, clientAddress = serverSocket.recvfrom(2048)
-	modifiedMessage = message.upper()
-	serverSocket.sendto(modifiedMessage, clientAddress)
+	connectionSocket, addr = serverSocket.accept()
+
+	sentence = connectionSocket.recv(1024)
+	capitalizedSentence = sentence.upper()
+	connectionSocket.send(capitalizedSentence)
+	connectionSocket.close()
