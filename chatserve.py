@@ -12,7 +12,12 @@
 # Lecture 15: Socket Programming Primer 
 
 from socket import *
-serverPort = 12556
+import sys
+
+if (len(sys.argv) < 2 or len(sys.argv) > 2):
+	print "useage: " + str(sys.argv[0]) + " [port number]"
+	sys.exit(0)
+serverPort = int(sys.argv[1])
 serverSocket = socket(AF_INET, SOCK_STREAM)
 serverSocket.bind(('', serverPort))
 serverSocket.listen(1)
