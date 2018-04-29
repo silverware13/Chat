@@ -5,8 +5,18 @@
  * Email: thomasza@oregonstate.edu
  * Date: 4/22/2018
  * -----------------
- * Connects to chatserve, is able to send
- * messages up to 500 characters long. 
+ * Connects to chatserve via a given
+ * command line hostname and port number.
+ * Next the user enters a handle.
+ * Lastly connects to server and
+ * alternates sending messages up
+ * to 500 characters long.
+ * -----------------------
+ * Cited references:
+ * Reviewed my code from my
+ * CS344 OTP socket programming
+ * assignment.
+ * https://github.com/silverware13/OTP/blob/master/otp_enc.c 
  */
 
 #define MAX_CHARS_MESSAGE 500
@@ -52,10 +62,21 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
+/* Function: check_args
+ * --------------------
+ *  Checks to make sure there are three arguments.
+ *  Makes sure the portnumber is an unsigned int.
+ *
+ *  argc: The number of command line arguments.
+ *  *argv[]: Array of command line arguments.
+ *
+ *  returns: Returns true if correct number of 
+ *  valid arguments, otherwise returns false.  
+ */
 bool check_args(int argc, char *argv[])
 {
 	//make sure the user entered correct number of arguments.
-	if(argc < 3){
+	if(argc != 3){
 		printf("useage: %s [host name] [port number]\n", argv[0]);
 		return false;
 	}
@@ -69,6 +90,14 @@ bool check_args(int argc, char *argv[])
 	return true;
 }
 
+/* Function: get_handle
+ * --------------------
+ *  Gets a handle from the user.
+ *  Must be no longer than 10 chars.
+ *
+ *  handle: Array that holds handle.
+ *  handle_size: Size of the handle array.
+ */
 void get_handle(char *handle, size_t handle_size)
 {
 	printf("Please enter a handle, it must be no longer than %d characters.\nHandle: ", MAX_CHARS_HANDLE);
@@ -87,22 +116,36 @@ void get_handle(char *handle, size_t handle_size)
 	printf("Your handle is: %s\n", handle);	
 }
 
+/* Function: setup_connection
+ * --------------------------
+ *  Starts connection between client
+ *  and server. Then starts chat between
+ *  client and server.
+ *
+ *  *argv[]: Array of command line arguments.
+ *  handle: Array that holds handle.
+ *  handle_size: Size of the handle array.
+ *  port_num: The port number given on command line.
+ *
+ *  returns: Returns true if a connection was made and chat has completed.
+ *  Returns false if a connection could not be made. 
+ */
 bool setup_connection(char *argv[], char *handle, size_t handle_size, int port_num)
 {
 	//setup variables
 	int socketFD;
-	struct sockaddr_in serverAddress;
-	struct hostent* serverHostInfo;
+	struct sockaddr_in server_address;
+	struct hostent* server_host_info;
 	
 	//set up the server address struct
-	memset((char*)&serverAddress, '\0', sizeof(serverAddress)); //clear out the address struct
-	serverAddress.sin_family = AF_INET; //create a network-capable socket
-	serverAddress.sin_port = htons(port_num); //store the port number
-	serverHostInfo = gethostbyname(argv[1]); //convert the machine name into a special form of address
-	if (serverHostInfo == NULL){
+	memset((char*)&server_address, '\0', sizeof(server_address)); //clear address struct
+	server_address.sin_family = AF_INET; //set address family
+	server_address.sin_port = htons(port_num); //save port number
+	server_host_info = gethostbyname(argv[1]); //get address
+	if (server_host_info == NULL){
 		return false;
 	} 
-	memcpy((char*)&serverAddress.sin_addr.s_addr, (char*)serverHostInfo->h_addr, serverHostInfo->h_length); //copy in the address
+	memcpy((char*)&server_address.sin_addr.s_addr, (char*)server_host_info->h_addr, server_host_info->h_length); //copy in the address
 	
 	//set up socket
 	socketFD = socket(AF_INET, SOCK_STREAM, 0); //create the socket
@@ -111,7 +154,7 @@ bool setup_connection(char *argv[], char *handle, size_t handle_size, int port_n
 	}
 
 	//connect to server
-	if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0){ //connect socket to address
+	if (connect(socketFD, (struct sockaddr*)&server_address, sizeof(server_address)) < 0){
 		return false;
 	}
 
@@ -121,6 +164,18 @@ bool setup_connection(char *argv[], char *handle, size_t handle_size, int port_n
 	return true;
 }
 
+/* Function: chat
+ * --------------------------
+ *  Client starts by having user type a message to 
+ *  server. Then waits for server to send message.
+ *  Instead of sending a message user may type
+ *  "/quit" to end the chat. This loops until
+ *  the client or server quits.
+ *
+ *  socketFD: The socket number.
+ *  handle: Array that holds handle.
+ *  handle_size: Size of the handle array.
+ */
 void chat(int socketFD, char *handle, size_t handle_size)
 {
 	//setup variables
@@ -185,5 +240,4 @@ void chat(int socketFD, char *handle, size_t handle_size)
 		//show message from server
 		printf("%s", buffer); 
 	}
-
 }
