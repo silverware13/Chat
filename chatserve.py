@@ -23,6 +23,6 @@ while 1:
 	while 1:
 		clientMessage = connectionSocket.recv(1024)
 		print clientMessage
-		serverMessage = "server> This is a message"	
+		serverMessage = "server> This is a message\n"	
 		connectionSocket.send(serverMessage)
 		#connectionSocket.close()

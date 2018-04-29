@@ -23,9 +23,9 @@
 
 //function prototype(s)
 bool check_args(int argc, char *argv[]);
-void get_handle(char *handle);
-bool setup_connection(char *argv[], char *handle, int port_num);
-void chat(int socketFD, char *handle);
+void get_handle(char *handle, size_t handle_size);
+bool setup_connection(char *argv[], char *handle, size_t handle_size, int port_num);
+void chat(int socketFD, char *handle, size_t handle_size);
 
 int main(int argc, char *argv[])
 {
@@ -37,13 +37,14 @@ int main(int argc, char *argv[])
 	//set variables	
 	int port_num = strtol(argv[2], NULL, 10);
 	char *handle;
+	size_t handle_size = MAX_CHARS_HANDLE + 1;
 	handle = (char *)calloc(MAX_CHARS_HANDLE + 1, sizeof(char));
 
 	//get a handle for the user
-	get_handle(handle);
+	get_handle(handle, handle_size);
 
 	//setup the connection with the server
-	if(!setup_connection(argv, handle, port_num)){
+	if(!setup_connection(argv, handle, handle_size, port_num)){
 		fprintf(stderr, "Connection failed.\n");
 		return 1;
 	}
@@ -68,14 +69,25 @@ bool check_args(int argc, char *argv[])
 	return true;
 }
 
-void get_handle(char *handle)
+void get_handle(char *handle, size_t handle_size)
 {
 	printf("Please enter a handle, it must be no longer than %d characters.\nHandle: ", MAX_CHARS_HANDLE);
-	scanf("%10s", handle, 10);
+	fflush(stdout); //make sure we printed the prompt
+	fgets(handle, handle_size, stdin);
+
+	//remove newline from handle, if there is none clear stdin until we find one
+	if(handle[strlen(handle)-1] == '\n'){
+		strtok(handle, "\n"); //remove newline
+	} else {
+		char c;
+		while((c = getchar()) != '\n' && c != EOF); //clear stdin
+	}
+
+	//show the handle
 	printf("Your handle is: %s\n", handle);	
 }
 
-bool setup_connection(char *argv[], char *handle, int port_num)
+bool setup_connection(char *argv[], char *handle, size_t handle_size, int port_num)
 {
 	//setup variables
 	int socketFD;
@@ -104,25 +116,34 @@ bool setup_connection(char *argv[], char *handle, int port_num)
 	}
 
 	//start chatting with the host
-	chat(socketFD, handle);
+	chat(socketFD, handle, handle_size);
 	
 	return true;
 }
 
-void chat(int socketFD, char *handle)
+void chat(int socketFD, char *handle, size_t handle_size)
 {
 	int chars_written, chars_read;
-	char buffer[MAX_CHARS_MESSAGE + MAX_CHARS_HANDLE + 2];
+	char buffer[MAX_CHARS_MESSAGE + MAX_CHARS_HANDLE + 4];
 	char message[MAX_CHARS_MESSAGE + 1];
-	memset(buffer, '\0', MAX_CHARS_MESSAGE + MAX_CHARS_HANDLE + 2);
+	memset(buffer, '\0', MAX_CHARS_MESSAGE + MAX_CHARS_HANDLE + 4);
 	memset(message, '\0', MAX_CHARS_MESSAGE + 1);
 	printf("Starting chat.\n");
 	while(true){
-		printf("%s> ", handle);
-		scanf("%s", message, 10);
-		snprintf(buffer, sizeof(buffer), "%s> %s", handle, message);
+		printf("%s> ", handle); //print a prompt for the user
+		fflush(stdout); //make sure we printed the prompt
+		fgets(message, sizeof(message), stdin); //get a message from the user
+		
+		//remove newline from message, if there is none clear stdin until we find one
+		if(message[strlen(message)-1] == '\n'){
+			strtok(message, "\n"); //remove newline
+		} else {
+			char c;
+			while((c = getchar()) != '\n' && c != EOF); //clear stdin
+		}
 
-		send(socketFD, buffer, strlen(buffer), 0); //write to socket
+		snprintf(buffer, sizeof(buffer), "%s> %s\n", handle, message); //add our handle to the message
+
 		//send message to server
 		chars_written = 0;
 		do{
@@ -132,18 +153,23 @@ void chat(int socketFD, char *handle)
 				exit(2); 
 			}
 		} while(chars_written < strlen(buffer));
-		printf("FINISHED SENDING\n");
+		
 		//read message from server
 		chars_read = 0;
-	//	do{
-			chars_read += recv(socketFD, &buffer[chars_read], 100, 0); //read from socket
+		int bufLen; //holds the buffer length
+		int bufSum = 0; //the number of chars we have writen to our buffer
+		memset(buffer, '\0', MAX_CHARS_MESSAGE + MAX_CHARS_HANDLE + 3);
+		do{
+			chars_read = recv(socketFD, &buffer[bufSum], 100, 0); //read from socket
+			bufSum += chars_read;
+			bufLen = strlen(buffer);
 			if(chars_read < 0){
 				fprintf(stderr, "Error reading from socket.\n");
 				exit(2); 
 			}
-	//	} while(buffer[strlen(buffer)] - 1 != '\0');
+		} while(buffer[bufLen - 1] != '\n');
 		
 		//show message from server
-		printf("%s\n", buffer); 
+		printf("%s", buffer); 
 	}
 }
