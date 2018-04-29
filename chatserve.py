@@ -43,7 +43,7 @@ while 1:
 		clientMessage = clientMessage.rstrip()
 
 		#if client quit stop here
-		if(clientMessage == "/quit"):
+		if(clientMessage == "\quit"):
 			connectionSocket.close()
 			break
 	
@@ -54,7 +54,7 @@ while 1:
 		serverMessage = raw_input(handle + "> ")
 		
 		#if we typed /quit instead of a message let client know
-		if(serverMessage == "/quit"):
+		if(serverMessage == "\quit"):
 			connectionSocket.send(serverMessage + '\n')
 			connectionSocket.close()
 			break
