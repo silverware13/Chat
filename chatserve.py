@@ -38,13 +38,27 @@ while 1:
 
 	#we made a connection keep sending messages to and from client
 	while 1:
+		#get message from client and remove newline
 		clientMessage = connectionSocket.recv(1024)
 		clientMessage = clientMessage.rstrip()
-		print clientMessage
-		serverMessage = raw_input(handle + "> ")
-		connectionSocket.send(handle + "> " + serverMessage + '\n')
 
-		#if /quit has been used go back to listening for connections
-		if(serverMessage == "/quit"):
+		#if client quit stop here
+		if(clientMessage == "/quit"):
 			connectionSocket.close()
 			break
+	
+		#print clients message	
+		print clientMessage
+
+		#get message from user
+		serverMessage = raw_input(handle + "> ")
+		
+		#if we typed /quit instead of a message let client know
+		if(serverMessage == "/quit"):
+			connectionSocket.send(serverMessage + '\n')
+			connectionSocket.close()
+			break
+
+		#send message to client
+		connectionSocket.send(handle + "> " + serverMessage[:500] + '\n')
+

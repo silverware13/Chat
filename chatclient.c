@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
 	//get a handle for the user
 	get_handle(handle, handle_size);
 
-	//setup the connection with the server
+	//setup the connection with the server and start chat
 	if(!setup_connection(argv, handle, handle_size, port_num)){
 		fprintf(stderr, "Connection failed.\n");
 		return 1;
@@ -123,13 +123,15 @@ bool setup_connection(char *argv[], char *handle, size_t handle_size, int port_n
 
 void chat(int socketFD, char *handle, size_t handle_size)
 {
+	//setup variables
 	int chars_written, chars_read;
 	char buffer[MAX_CHARS_MESSAGE + MAX_CHARS_HANDLE + 4];
 	char message[MAX_CHARS_MESSAGE + 1];
 	memset(buffer, '\0', MAX_CHARS_MESSAGE + MAX_CHARS_HANDLE + 4);
 	memset(message, '\0', MAX_CHARS_MESSAGE + 1);
-	printf("Starting chat.\n");
+
 	while(true){
+		//get message from user
 		printf("%s> ", handle); //print a prompt for the user
 		fflush(stdout); //make sure we printed the prompt
 		fgets(message, sizeof(message), stdin); //get a message from the user
@@ -142,8 +144,11 @@ void chat(int socketFD, char *handle, size_t handle_size)
 			while((c = getchar()) != '\n' && c != EOF); //clear stdin
 		}
 
-		//see if we are quiting
-		if(!strcmp(message, "/quit")) exit(0);
+		//see if we are quiting. if yes let server know
+		if(!strcmp(message, "/quit")){
+			send(socketFD, "/quit\n", strlen("/quit\n"), 0);	
+			exit(0);
+		}
 
 		snprintf(buffer, sizeof(buffer), "%s> %s\n", handle, message); //add our handle to the message
 
@@ -171,8 +176,14 @@ void chat(int socketFD, char *handle, size_t handle_size)
 				exit(2); 
 			}
 		} while(buffer[bufLen - 1] != '\n');
-		
+
+		//make sure server is not quiting
+		if(!strcmp(buffer, "/quit\n")){
+			exit(0);
+		}
+	
 		//show message from server
 		printf("%s", buffer); 
 	}
+
 }
