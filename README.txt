@@ -24,7 +24,7 @@ We should see the message we sent from term1 and a new prompt, let us respond:
 Hey client
 
 Terminal #1:
-At this point we want to end the connection so we can type "/quit":
-/quit
+At this point we want to end the connection so we can type "\quit":
+\quit
 
 At this point terminal #1 should have finished running chatclient and terminal #2 should have gone back to awaiting a new connection. We have now successfully used the chat client and server.
