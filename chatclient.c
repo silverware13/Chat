@@ -169,7 +169,7 @@ bool setup_connection(char *argv[], char *handle, size_t handle_size, int port_n
  *  Client starts by having user type a message to 
  *  server. Then waits for server to send message.
  *  Instead of sending a message user may type
- *  "/quit" to end the chat. This loops until
+ *  "\quit" to end the chat. This loops until
  *  the client or server quits.
  *
  *  socketFD: The socket number.
@@ -200,8 +200,8 @@ void chat(int socketFD, char *handle, size_t handle_size)
 		}
 
 		//see if we are quiting. if yes let server know
-		if(!strcmp(message, "/quit")){
-			send(socketFD, "/quit\n", strlen("/quit\n"), 0);	
+		if(!strcmp(message, "\quit")){
+			send(socketFD, "\quit\n", strlen("\quit\n"), 0);	
 			exit(0);
 		}
 
@@ -233,7 +233,7 @@ void chat(int socketFD, char *handle, size_t handle_size)
 		} while(buffer[bufLen - 1] != '\n');
 
 		//make sure server is not quiting
-		if(!strcmp(buffer, "/quit\n")){
+		if(!strcmp(buffer, "\quit\n")){
 			exit(0);
 		}
 	
