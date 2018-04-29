@@ -142,6 +142,9 @@ void chat(int socketFD, char *handle, size_t handle_size)
 			while((c = getchar()) != '\n' && c != EOF); //clear stdin
 		}
 
+		//see if we are quiting
+		if(!strcmp(message, "/quit")) exit(0);
+
 		snprintf(buffer, sizeof(buffer), "%s> %s\n", handle, message); //add our handle to the message
 
 		//send message to server
