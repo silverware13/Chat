@@ -22,7 +22,8 @@ while 1:
 
 	while 1:
 		clientMessage = connectionSocket.recv(1024)
+		clientMessage = clientMessage.rstrip()
 		print clientMessage
-		serverMessage = "server> This is a message\n"	
-		connectionSocket.send(serverMessage)
+		serverMessage = raw_input("server> ")
+		connectionSocket.send("server> " + serverMessage + '\n')
 		#connectionSocket.close()
