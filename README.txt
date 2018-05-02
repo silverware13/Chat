@@ -6,7 +6,7 @@ Begin by compiling chatclient with the following command:
 gcc -o chatclient chatclient.c
 
 Terminal #2: 
-We will start the server on port 12556 (but you can use any port):
+We will start the server on port 12556 (or use any port you like):
 python ./chatserve.py 12556
 Next we select our handle, we are going to use term2:
 term2
