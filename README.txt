@@ -7,13 +7,13 @@ gcc -o chatclient chatclient.c
 
 Terminal #2: 
 We will start the server on port 12556 (but you can use any port):
-python chatserve.py 12556
+python ./chatserve.py 12556
 Next we select our handle, we are going to use term2:
 term2
 
 Terminal #1:
 We will now start the client using local host and the same port:
-chatclient localhost 12556
+./chatclient localhost 12556
 Next we select our handle, we are going to use term1:
 term1
 At this point we should see a prompt with our handle, let us enter a message:

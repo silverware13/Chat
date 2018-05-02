@@ -31,11 +31,13 @@
 #include <netdb.h>
 #include <stdbool.h>
 
-//function prototype(s)
+//function prototypes
 bool check_args(int argc, char *argv[]);
 void get_handle(char *handle, size_t handle_size);
-bool setup_connection(char *argv[], char *handle, size_t handle_size, int port_num);
+bool initiate_contact(char *argv[], char *handle, size_t handle_size, int port_num);
 void chat(int socketFD, char *handle, size_t handle_size);
+void send_message(int socketFD, char *handle, size_t handle_size);
+void receive_message(int socketFD, char *handle, size_t handle_size);
 
 int main(int argc, char *argv[])
 {
@@ -54,7 +56,7 @@ int main(int argc, char *argv[])
 	get_handle(handle, handle_size);
 
 	//setup the connection with the server and start chat
-	if(!setup_connection(argv, handle, handle_size, port_num)){
+	if(!initiate_contact(argv, handle, handle_size, port_num)){
 		fprintf(stderr, "Connection failed.\n");
 		return 1;
 	}
@@ -116,7 +118,7 @@ void get_handle(char *handle, size_t handle_size)
 	printf("Your handle is: %s\n", handle);	
 }
 
-/* Function: setup_connection
+/* Function: initiate_contact
  * --------------------------
  *  Starts connection between client
  *  and server. Then starts chat between
@@ -130,7 +132,7 @@ void get_handle(char *handle, size_t handle_size)
  *  returns: Returns true if a connection was made and chat has completed.
  *  Returns false if a connection could not be made. 
  */
-bool setup_connection(char *argv[], char *handle, size_t handle_size, int port_num)
+bool initiate_contact(char *argv[], char *handle, size_t handle_size, int port_num)
 {
 	//setup variables
 	int socketFD;
@@ -145,7 +147,7 @@ bool setup_connection(char *argv[], char *handle, size_t handle_size, int port_n
 	if (server_host_info == NULL){
 		return false;
 	} 
-	memcpy((char*)&server_address.sin_addr.s_addr, (char*)server_host_info->h_addr, server_host_info->h_length); //copy in the address
+	memcpy((char*)&server_address.sin_addr.s_addr, (char*)server_host_info->h_addr, server_host_info->h_length); //copy address
 	
 	//set up socket
 	socketFD = socket(AF_INET, SOCK_STREAM, 0); //create the socket
@@ -166,11 +168,9 @@ bool setup_connection(char *argv[], char *handle, size_t handle_size, int port_n
 
 /* Function: chat
  * --------------------------
- *  Client starts by having user type a message to 
- *  server. Then waits for server to send message.
- *  Instead of sending a message user may type
- *  "\quit" to end the chat. This loops until
- *  the client or server quits.
+ *  Client starts by sending a message,
+ *  then we wait for the serve to send us
+ *  a message. We loop until either side quits.
  *
  *  socketFD: The socket number.
  *  handle: Array that holds handle.
@@ -178,66 +178,102 @@ bool setup_connection(char *argv[], char *handle, size_t handle_size, int port_n
  */
 void chat(int socketFD, char *handle, size_t handle_size)
 {
+	while(true){
+		//send message to server
+		send_message(socketFD, handle, handle_size);	
+		//read message from server
+		receive_message(socketFD, handle, handle_size);	
+	}
+}
+
+/* Function: send_message
+ * --------------------------
+ *  User either starts by typing a message to 
+ *  the server, or user types "\quit" to end the chat.
+ *
+ *  socketFD: The socket number.
+ *  handle: Array that holds handle.
+ *  handle_size: Size of the handle array.
+ */
+void send_message(int socketFD, char *handle, size_t handle_size)
+{
 	//setup variables
-	int chars_written, chars_read;
+	int chars_written;
 	char buffer[MAX_CHARS_MESSAGE + MAX_CHARS_HANDLE + 4];
 	char message[MAX_CHARS_MESSAGE + 1];
 	memset(buffer, '\0', MAX_CHARS_MESSAGE + MAX_CHARS_HANDLE + 4);
 	memset(message, '\0', MAX_CHARS_MESSAGE + 1);
 
-	while(true){
-		//get message from user
-		printf("%s> ", handle); //print a prompt for the user
-		fflush(stdout); //make sure we printed the prompt
-		fgets(message, sizeof(message), stdin); //get a message from the user
+	//get message from user
+	printf("%s> ", handle); //print a prompt for the user
+	fflush(stdout); //make sure we printed the prompt
+	fgets(message, sizeof(message), stdin); //get a message from the user
 		
-		//remove newline from message, if there is none clear stdin until we find one
-		if(message[strlen(message)-1] == '\n'){
-			strtok(message, "\n"); //remove newline
-		} else {
-			char c;
-			while((c = getchar()) != '\n' && c != EOF); //clear stdin
-		}
-
-		//see if we are quiting. if yes let server know
-		if(!strcmp(message, "\\quit")){
-			send(socketFD, "\\quit\n", strlen("\\quit\n"), 0);	
-			exit(0);
-		}
-
-		snprintf(buffer, sizeof(buffer), "%s> %s\n", handle, message); //add our handle to the message
-
-		//send message to server
-		chars_written = 0;
-		do{
-			chars_written += send(socketFD, buffer, strlen(buffer), 0); //write to socket
-			if(chars_written < 0){
-				fprintf(stderr, "Error writing to socket.\n");
-				exit(2); 
-			}
-		} while(chars_written < strlen(buffer));
-		
-		//read message from server
-		chars_read = 0;
-		int bufLen; //holds the buffer length
-		int bufSum = 0; //the number of chars we have writen to our buffer
-		memset(buffer, '\0', MAX_CHARS_MESSAGE + MAX_CHARS_HANDLE + 3);
-		do{
-			chars_read = recv(socketFD, &buffer[bufSum], 100, 0); //read from socket
-			bufSum += chars_read;
-			bufLen = strlen(buffer);
-			if(chars_read < 0){
-				fprintf(stderr, "Error reading from socket.\n");
-				exit(2); 
-			}
-		} while(buffer[bufLen - 1] != '\n');
-
-		//make sure server is not quiting
-		if(!strcmp(buffer, "\\quit\n")){
-			exit(0);
-		}
-	
-		//show message from server
-		printf("%s", buffer); 
+	//remove newline from message, if there is none clear stdin until we find one
+	if(message[strlen(message)-1] == '\n'){
+		strtok(message, "\n"); //remove newline
+	} else {
+		char c;
+		while((c = getchar()) != '\n' && c != EOF); //clear stdin
 	}
+
+	//see if we are quiting. if we are let server know
+	if(!strcmp(message, "\\quit")){
+		send(socketFD, "\\quit\n", strlen("\\quit\n"), 0);	
+		exit(0);
+	}
+
+	snprintf(buffer, sizeof(buffer), "%s> %s\n", handle, message); //add our handle to the message
+
+	//send message to server
+	chars_written = 0;
+	do{
+		chars_written += send(socketFD, buffer, strlen(buffer), 0); //write to socket
+		if(chars_written < 0){
+			fprintf(stderr, "Error writing to socket.\n");
+			exit(2); 
+		}
+	} while(chars_written < strlen(buffer));
+}
+
+/* Function: receive_message
+ * --------------------------
+ *  Read a message from the server.
+ *  If we get a message letting us know
+ *  that the server is quitting we terminate
+ *  the program.
+ *
+ *  socketFD: The socket number.
+ *  handle: Array that holds handle.
+ *  handle_size: Size of the handle array.
+ */
+void receive_message(int socketFD, char *handle, size_t handle_size)
+{
+	//setup variables
+	int chars_read;
+	char buffer[MAX_CHARS_MESSAGE + MAX_CHARS_HANDLE + 4];
+	memset(buffer, '\0', MAX_CHARS_MESSAGE + MAX_CHARS_HANDLE + 4);
+	
+	//read message from server
+	chars_read = 0;
+	int bufLen; //holds the buffer length
+	int bufSum = 0; //the number of chars we have writen to our buffer
+	memset(buffer, '\0', MAX_CHARS_MESSAGE + MAX_CHARS_HANDLE + 3);
+	do{
+		chars_read = recv(socketFD, &buffer[bufSum], 100, 0); //read from socket
+		bufSum += chars_read;
+		bufLen = strlen(buffer);
+		if(chars_read < 0){
+			fprintf(stderr, "Error reading from socket.\n");
+			exit(2); 
+		}
+	} while(buffer[bufLen - 1] != '\n');
+
+	//if server is quiting we also quit
+	if(!strcmp(buffer, "\\quit\n")){
+		exit(0);
+	}
+
+	//show message from server
+	printf("%s", buffer); 
 }
